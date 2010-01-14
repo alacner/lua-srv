@@ -52,7 +52,7 @@
 lua_State *L; /* lua state handle */
 char *luasrv_settings_rootpath = NULL;
 struct evbuffer *buf;
-struct evkeyvalq luasrv_http_query;
+struct evkeyvalq *input_headers;
 
 static void show_help(void)
 {
@@ -75,31 +75,52 @@ static void show_help(void)
 	fprintf(stderr, b, strlen(b));
 }
 
-static int luaM_get (lua_State *L) {
-	const char *name = luaL_optstring(L, 1, NULL);
-	const char *value = evhttp_find_header (&luasrv_http_query, name);
-	lua_pushstring(L, value);
-	return 1;
-}
-
 static int luaM_print (lua_State *L) {
 	const char *str = luaL_optstring(L, 1, NULL);
 	evbuffer_add_printf(buf, "%s", str);
 	return 0;
 }
 
+static int luaM_get_header (lua_State *L) {
+	const char *header = luaL_optstring(L, 1, NULL);
+	const char *header_data = evhttp_find_header (input_headers, header);
+	lua_pushstring(L, header_data);
+	return 1;
+}
+
 /* 处理模块 */
 void luasrv_handler(struct evhttp_request *req, void *arg)
 {
 	buf = evbuffer_new();
+	input_headers = req->input_headers;
 	
-	/* 分析URL参数 */
+	// GET
 	char *decode_uri = strdup((char*) evhttp_request_uri(req));
-	evhttp_parse_query(decode_uri, &luasrv_http_query);
+	lua_pushstring(L, decode_uri);
+	lua_setglobal(L, "GET_DATA");
 
+	// POST
+	int post_data_len;
+	post_data_len = EVBUFFER_LENGTH(req->input_buffer);
+
+	if (post_data_len > 0) {
+		char *post_data = (char *)malloc(post_data_len + 1);
+		memset(post_data, '\0', post_data_len + 1);
+		memcpy (post_data, EVBUFFER_DATA(req->input_buffer), post_data_len);
+		lua_pushstring(L, post_data);
+		lua_setglobal(L, "POST_DATA");
+		free(post_data);
+	}
+
+	// COOKIE_DATA 
+	const char *cookie_data = evhttp_find_header(req->input_headers, "Cookie");
+	lua_pushstring(L, cookie_data);
+	lua_setglobal(L, "COOKIE_DATA");
 
 	evhttp_add_header(req->output_headers, "Server", "luasrv" VERSION);
 	evhttp_add_header(req->output_headers, "Keep-Alive", "120");
+	evhttp_add_header(req->output_headers, "Set-Cookie", "_ca=hahahahaha");
+	evhttp_add_header(req->output_headers, "Set-Cookie", "_cb=hehehehehhe");
 	
 	//evbuffer_add_printf(buf, "%s", "SUCCESS");
 
@@ -118,7 +139,6 @@ void luasrv_handler(struct evhttp_request *req, void *arg)
 		evhttp_send_reply(req, HTTP_NOTFOUND, "NOT FOUND", buf);
 		/* 内存释放 */
 		free(decode_uri);
-		evhttp_clear_headers(&luasrv_http_query);
 		evbuffer_free(buf);
 		return;
 	}  
@@ -128,7 +148,6 @@ void luasrv_handler(struct evhttp_request *req, void *arg)
 		evhttp_send_reply(req, HTTP_NOTFOUND, "NOT FOUND", buf);
 		/* 内存释放 */
 		free(decode_uri);
-		evhttp_clear_headers(&luasrv_http_query);
 		evbuffer_free(buf);
 		return;
 	}
@@ -168,6 +187,8 @@ void luasrv_handler(struct evhttp_request *req, void *arg)
 	lua_rawset(L, -3);
 	lua_setglobal(L, "SERVER");
 
+
+
 	//evbuffer_add_printf(buf, "<br/>%s<br/>", script_filename);
 
 	if (luaL_loadfile(L, "./script/loader.lua") || lua_pcall(L, 0, 0, 0)) {
@@ -180,7 +201,6 @@ void luasrv_handler(struct evhttp_request *req, void *arg)
 	
 	/* 内存释放 */
 	free(decode_uri);
-	evhttp_clear_headers(&luasrv_http_query);
 	evbuffer_free(buf);
 }
 
@@ -203,7 +223,7 @@ int main(int argc, char **argv) {
 
 	struct luaL_reg driver[] = {
         { "print", luaM_print },
-        { "get", luaM_get },
+        { "get_header", luaM_get_header },
         { NULL, NULL },
     };
 

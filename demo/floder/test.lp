@@ -10,10 +10,12 @@
     <p>User <?= username ?> logged in</p>
     <a href="<?= logoutURL ?>">Logout</a>
     <? else ?>
-    <p style="color:#ff0000"><?= cgi.get('errmsg') ?> </p>
-    <form method="post" action="" >
-        User name: <input name="username" maxlength="20" size="20" value="<?= cgi.get('username') ?>" ><br />
+    <p style="color:#ff0000"><?= GET.errmsg ?> </p>
+    <form method="post" action="" enctype="multipart/form-data" >
+        User name: <input name="username" maxlength="20" size="20" value="<?= GET.username ?>" ><br />
         Password: <input name="pass" type="password" maxlength="20" size="20"><br />
+        file1: <input name="file1" type="file"><br />
+        file2: <input name="file2" type="file"><br />
         <input type="submit" value="Login" />
         <input type="reset" value="Reset" />
     </form>
@@ -21,6 +23,9 @@
 </body>
 </html>
 
+<?lua
+print_r(POST)
+?>
 <?lua
 print_r(SERVER)
 ?>

@@ -1,4 +1,5 @@
 print = cgi.print
+echo = cgi.print
 --local print = echo.print
 local type = type
 local pairs = pairs
