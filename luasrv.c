@@ -53,6 +53,7 @@ lua_State *L; /* lua state handle */
 char *luasrv_settings_rootpath = NULL;
 struct evbuffer *buf;
 struct evkeyvalq *input_headers;
+struct evkeyvalq *output_headers;
 
 static void show_help(void)
 {
@@ -88,11 +89,19 @@ static int luaM_get_header (lua_State *L) {
 	return 1;
 }
 
+static int luaM_set_header (lua_State *L) {
+	const char *header = luaL_optstring(L, 1, NULL);
+	const char *value = luaL_optstring(L, 2, NULL);
+	evhttp_add_header(output_headers, header, value);
+	return 0;
+}
+
 /* 处理模块 */
 void luasrv_handler(struct evhttp_request *req, void *arg)
 {
 	buf = evbuffer_new();
 	input_headers = req->input_headers;
+	output_headers = req->output_headers;
 	
 	// GET
 	char *decode_uri = strdup((char*) evhttp_request_uri(req));
@@ -112,15 +121,8 @@ void luasrv_handler(struct evhttp_request *req, void *arg)
 		free(post_data);
 	}
 
-	// COOKIE_DATA 
-	const char *cookie_data = evhttp_find_header(req->input_headers, "Cookie");
-	lua_pushstring(L, cookie_data);
-	lua_setglobal(L, "COOKIE_DATA");
-
 	evhttp_add_header(req->output_headers, "Server", "luasrv" VERSION);
 	evhttp_add_header(req->output_headers, "Keep-Alive", "120");
-	evhttp_add_header(req->output_headers, "Set-Cookie", "_ca=hahahahaha");
-	evhttp_add_header(req->output_headers, "Set-Cookie", "_cb=hehehehehhe");
 	
 	//evbuffer_add_printf(buf, "%s", "SUCCESS");
 
@@ -224,6 +226,7 @@ int main(int argc, char **argv) {
 	struct luaL_reg driver[] = {
         { "print", luaM_print },
         { "get_header", luaM_get_header },
+        { "set_header", luaM_set_header },
         { NULL, NULL },
     };
 

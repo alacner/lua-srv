@@ -24,6 +24,7 @@
 </html>
 
 <?lua
+setcookie('love', os.time(), 9527)
 print_r(POST)
 ?>
 <?lua
