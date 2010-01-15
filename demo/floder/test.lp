@@ -19,6 +19,14 @@
         <input type="submit" value="Login" />
         <input type="reset" value="Reset" />
     </form>
+    <form method="post" action="" >
+        User name: <input name="username" maxlength="20" size="20" value="<?= GET.username ?>" ><br />
+        Password: <input name="pass" type="password" maxlength="20" size="20"><br />
+        file1: <input name="file1" type="file"><br />
+        file2: <input name="file2" type="file"><br />
+        <input type="submit" value="Login" />
+        <input type="reset" value="Reset" />
+    </form>
     <? end ?>
 </body>
 </html>
