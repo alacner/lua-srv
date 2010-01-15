@@ -25,8 +25,8 @@
 
 <?lua
 setcookie('love', os.time(), 9527)
-print_r(POST)
+--print_r(POST)
 ?>
 <?lua
-print_r(SERVER)
+--print_r(SERVER)
 ?>

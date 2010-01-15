@@ -30,18 +30,22 @@ function setcookie(...)
 	cgi.set_header("Set-Cookie", table.concat(t, "; "));
 end
 
+-- PARSE GET --
+parsequery(SERVER.QUERY_STRING, GET)
+--print_r(GET)
 
+-- PARSE POST --
 
 --setcookie('wgj', 'yes')
 --setcookie('test2', 'haha', 9527)
 --setcookie('test', 'haha', 100, '/', 'domian.com', true)
 --cgi.set_header("Set-Cookie", "_cbb=hahahhahahaha");
-print_r(GET_DATA)
-print_r(POST_DATA)
-print_r(COOKIE)
-print_r(HEADER_DATA)
-print_r(cgi.get_header("Host"))
-print_r(cgi.get_header("Content-Length"))
+--print_r(GET_DATA)
+--print_r(POST_DATA)
+--print_r(COOKIE)
+--print_r(HEADER_DATA)
+--print_r(cgi.get_header("Host"))
+--print_r(cgi.get_header("Content-Length"))
 
 --print_r(SERVER)
 
