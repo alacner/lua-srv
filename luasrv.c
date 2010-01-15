@@ -96,6 +96,7 @@ static int luaM_set_header (lua_State *L) {
 	return 0;
 }
 
+
 /* 处理模块 */
 void luasrv_handler(struct evhttp_request *req, void *arg)
 {
@@ -176,8 +177,9 @@ void luasrv_handler(struct evhttp_request *req, void *arg)
 	lua_pushstring(L, script_filename);
 	lua_rawset(L, -3);
 
+
 	lua_pushstring(L, "REQUEST_METHOD");
-	lua_pushstring(L, "UNKNOW");
+	lua_pushnumber(L, req->type);
 	lua_rawset(L, -3);
 
 	lua_pushstring(L, "QUERY_STRING");

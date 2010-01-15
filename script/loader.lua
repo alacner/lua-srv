@@ -5,6 +5,9 @@ require "urlcode"
 
 GET, POST, FILE, COOKIE, REQUEST = {}, {}, {}, {}, {}
 
+local EVHTTP_REQ_METHOD = {[0]='GET', [1]='POST', [2]='HEAD', [3]='NULL'} -- find at evhttp.h:179:enum evhttp_cmd_type
+SERVER.REQUEST_METHOD = EVHTTP_REQ_METHOD[SERVER.REQUEST_METHOD]
+
 -- PARSE COOKIE --
 local cookies = cgi.get_header("Cookie") or ""
 cookies = ";" .. cookies .. ";"
