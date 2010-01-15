@@ -3,6 +3,7 @@ package.path = './script/?.lua;./?.lua;';
 require "print_r"
 require "urlcode"
 require "split"
+require "serialize"
 
 GET, POST, FILES, COOKIE, REQUEST = {}, {}, {}, {}, {}
 
@@ -77,13 +78,19 @@ end
 -- name,type,size,tmp_name,error
 function parse_post_file(data)
 	local val = string.match(data, ".+\r\n(.+)")
+	local ppf = {}
+	local f = io.tmpfile(); f:write(val);-- f:close()
+	ppf["tmp_name"] = f
+	ppf["size"] = string.len(val)
+	ppf["error"] = 0
+	return ppf
 end
 
 function split_boundary()
+	--printl(POST_DATA)
 	local POST_TEMP = split(POST_DATA, boundary)
 	for i,p in ipairs(POST_TEMP) do 
 		local h = breakheaders(p)	
-		print_r(h)
 		local t = {}
 		local hcd = h["content-disposition"]
 		if hcd then
@@ -138,15 +145,78 @@ for k,v in pairs(COOKIE) do
 	REQUEST[k] = v
 end
 
-print("<hr>");
+-- UPLOAD FUNCTION --
+function move_uploaded_file(f, dest)
+	local d, err = io.open(dest, "w+"); 
+	if d == nil then
+		error("Cannot create upload file.\n"..err)
+	end     
+	d:write(f:read("*a")); d:close()
+	f:close()
+end
+
+
+--"\r\n\t <>'\"\\"
+-- SESSION FUNCTION --
+local session_timeout = 10 * 60 -- 10 minutes
+
+cgi.mkdir(tmp_path .. '/sess') -- save session files
+
+local function session_filename (token)
+	return string.format ("%s/sess_%s.lua", tmp_path, token)
+end
+
+local function session_exists (token)
+	local fh = io.open(session_filename(token))
+	if fh then
+		fh:close ()
+		return true
+	else
+		return false
+	end
+end
+
+function session_new ()
+	local ver = 0;
+	local token = cgi.microtime(1)
+	if session_exists (token) then
+		repeat
+			token = token .. '.' .. ver
+			ver = ver + 1
+		until not session_exists (token)
+	end
+	return token 
+end
+
+function session_save (token, data)
+	local fh = assert (io.open(session_filename(token), "w+"))
+	fh:write "return "
+	serialize (data, function (s) fh:write(s) end)
+	fh:close()
+end
+
+function session_delete (token)
+	os.remove (session_filename(token))
+end
+
+function session_load (token)
+	local f, err = loadfile (session_filename(token))
+	if not f then
+		return nil, err
+	else
+		return f()
+	end
+end
+
+print("<hr>GET<br/>");
 print_r(GET)
-print("<hr>");
+print("<hr>POST<br/>");
 print_r(POST)
-print("<hr>");
+print("<hr>COOKIE<br/>");
 print_r(COOKIE)
-print("<hr>");
+print("<hr>REQUEST<br/>");
 print_r(REQUEST)
-print("<hr>");
+print("<hr>FILES<br/>");
 print_r(FILES)
 print("<hr>");
 --setcookie('wgj', 'yes')

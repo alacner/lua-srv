@@ -51,6 +51,7 @@
 //Global Setting
 lua_State *L; /* lua state handle */
 char *luasrv_settings_rootpath = NULL;
+struct evhttp *httpd;
 struct evbuffer *buf;
 struct evkeyvalq *input_headers;
 struct evkeyvalq *output_headers;
@@ -76,6 +77,61 @@ static void show_help(void)
 	fprintf(stderr, b, strlen(b));
 }
 
+/* 创建多层目录的函数 */
+void create_multilayer_dir( char *muldir ) {
+    int    i,len;
+    char    str[512];
+    
+    strncpy( str, muldir, 512 );
+    len=strlen(str);
+    for( i=0; i<len; i++ ) {
+        if( str[i]=='/' ) {
+            str[i] = '\0';
+            //判断此目录是否存在,不存在则创建
+            if( access(str, F_OK)!=0 ) {
+                mkdir( str, 0777 );
+            }
+            str[i]='/';
+        }
+    }
+    if( len>0 && access(str, F_OK)!=0 ) {
+        mkdir( str, 0777 );
+    }
+
+    return;
+}
+
+static int luaM_mkdir (lua_State *L) {
+	const char *muldir = luaL_optstring(L, 1, NULL);
+	create_multilayer_dir((char *)muldir);
+	if (access(muldir, W_OK) == 0) {
+		lua_pushboolean(L, 1);
+	} else {
+		lua_pushboolean(L, 0);
+	}
+	return 1;	
+}
+
+#define NUL  '\0'
+#define MICRO_IN_SEC 1000000.00
+#define SEC_IN_MIN 60
+static int luaM_microtime (lua_State *L) {
+	struct timeval tp = {0};
+	int get_as_float = luaL_optnumber(L, 1, 0);
+
+	if (gettimeofday(&tp, NULL)) {
+		lua_pushboolean(L, 0);
+    }
+
+    if (get_as_float) {
+        lua_pushnumber(L, (double)(tp.tv_sec + tp.tv_usec / MICRO_IN_SEC));
+    } else {
+		lua_pushfstring(L, "%f %d", tp.tv_usec / MICRO_IN_SEC, tp.tv_sec);
+	}
+
+	return 1;	
+}
+
 static int luaM_print (lua_State *L) {
 	const char *str = luaL_optstring(L, 1, NULL);
 	evbuffer_add_printf(buf, "%s", str);
@@ -96,7 +152,6 @@ static int luaM_set_header (lua_State *L) {
 	return 0;
 }
 
-
 /* 处理模块 */
 void luasrv_handler(struct evhttp_request *req, void *arg)
 {
@@ -113,13 +168,10 @@ void luasrv_handler(struct evhttp_request *req, void *arg)
 	int post_data_len;
 	post_data_len = EVBUFFER_LENGTH(req->input_buffer);
 
+		fprintf(stderr, "\n - %d - \n", post_data_len);
 	if (post_data_len > 0) {
-		char *post_data = (char *)malloc(post_data_len + 1);
-		memset(post_data, '\0', post_data_len + 1);
-		memcpy (post_data, EVBUFFER_DATA(req->input_buffer), post_data_len);
-		lua_pushstring(L, post_data);
+		lua_pushstring(L, (char *)EVBUFFER_DATA(req->input_buffer));
 		lua_setglobal(L, "POST_DATA");
-		free(post_data);
 	}
 
 	evhttp_add_header(req->output_headers, "Server", "luasrv" VERSION);
@@ -227,6 +279,8 @@ int main(int argc, char **argv) {
 
 	struct luaL_reg driver[] = {
         { "print", luaM_print },
+        { "mkdir", luaM_mkdir },
+        { "microtime", luaM_microtime },
         { "get_header", luaM_get_header },
         { "set_header", luaM_set_header },
         { NULL, NULL },
@@ -306,7 +360,6 @@ int main(int argc, char **argv) {
 	signal (SIGHUP, kill_signal);
 	
 	/* 请求处理部分 */
-    struct evhttp *httpd;
 
 
     event_init();

@@ -1,3 +1,4 @@
+printl = print
 print = cgi.print
 echo = cgi.print
 --local print = echo.print
