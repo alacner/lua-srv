@@ -1,3 +1,13 @@
+<?lua
+session_start()
+local md5 = cgi.md5('中国人1', 1)
+local md52 = cgi.md5('中国人1')
+print("<br>=================<br>")
+print(md5)
+print("<br>=================<br>")
+print(md52)
+print("<br>=================<br>")
+?>
 <html>
 <head>
 <title>Login</title>

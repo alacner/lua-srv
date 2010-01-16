@@ -13,6 +13,8 @@ cookies = string.gsub(cookies, "%s*;%s*", ";")   -- remove extra spaces
 for k, v in string.gmatch(cookies, "([%w_]+)=([%w_]+);") do
 	COOKIE[k] = v and unescape(v)
 end
+print_r(cgi.get_header("Cookie"))
+print_r(COOKIE)
 
 function deletecookie(name)
 	setcookie(name, 'NULL', -1)
@@ -129,6 +131,24 @@ end
 
 --"\r\n\t <>'\"\\"
 -- SESSION FUNCTION --
+function session_start ()
+	print_r("<hr>fdsafdsafsa<br>")
+	print_r(COOKIE)
+	print_r("<hr>fdsafdsafsa<br>")
+	local ver = 0;
+	local token = cgi.microtime(1)
+	if session_exists (token) then
+		repeat
+			token = token .. '.' .. ver
+			ver = ver + 1
+		until not session_exists (token)
+	end
+	-- save cookie
+	setcookie(setting.session.name, token, setting.session.cookie_expire, setting.session.cookie_path, setting.session.cookie_domain, setting.session.cookie_secure)
+	return token 
+end
+
+
 print("<hr>GET<br/>");
 print_r(GET)
 print("<hr>POST<br/>");

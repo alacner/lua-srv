@@ -40,12 +40,14 @@
 
 #include "lua.h"
 #include "lauxlib.h"
+#include "lualib.h"
 #if ! defined (LUA_VERSION_NUM) || LUA_VERSION_NUM < 501
 #include "compat-5.1.h"
 #endif
 
-#include "lfs.h"
-#include "luaiconv.h"
+#include "libs/lfs.h"
+#include "libs/luaiconv.h"
+#include "libs/md5.h"
 
 #if LUA_VERSION_NUM < 501
 #define luaL_register(a, b, c) luaL_openlib((a), (b), (c), 0)
@@ -103,6 +105,33 @@ static int luaM_microtime (lua_State *L) {
 	return 1;	
 }
 
+static int luaM_md5 (lua_State *L) {
+    struct MD5Context md5c;
+    unsigned char ss[16];
+	char *s = (char *)luaL_optstring(L, 1, NULL);
+	int raw_output = luaL_optnumber(L, 2, 0);
+	int i;
+
+    MD5Init( &md5c );
+    MD5Update( &md5c, s, strlen(s) );
+    MD5Final( ss, &md5c );
+
+	if (raw_output) {
+		lua_pushstring(L, (char *)ss);
+	}
+	else
+	{
+		char md5_32[32][2];
+		for(i=0; i<16; i++ ) {
+			sprintf(md5_32[i], "%02x", ss[i]);
+			lua_pushstring(L, md5_32[i]);
+		}
+		lua_concat(L, 16);
+	}
+
+	return 1;
+}
+
 static int luaM_print (lua_State *L) {
 	const char *str = luaL_optstring(L, 1, NULL);
 	evbuffer_add_printf(buf, "%s", str);
@@ -148,8 +177,6 @@ void luasrv_handler(struct evhttp_request *req, void *arg)
 	evhttp_add_header(req->output_headers, "Server", "luasrv" VERSION);
 	evhttp_add_header(req->output_headers, "Keep-Alive", "120");
 	
-	//evbuffer_add_printf(buf, "%s", "SUCCESS");
-
 	char *script_name = strtok(decode_uri, "?");
 	char *query_string = strtok(NULL, "?");
 
@@ -265,6 +292,7 @@ int main(int argc, char **argv) {
 	struct luaL_reg driver[] = {
         { "print", luaM_print },
         { "microtime", luaM_microtime },
+        { "md5", luaM_md5 },
         { "get_header", luaM_get_header },
         { "set_header", luaM_set_header },
         { NULL, NULL },

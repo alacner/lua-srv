@@ -6,7 +6,7 @@
 CFLAGS= -O2 -Wall -L/usr/local/lib -llua -ldl -lm -levent -lpthread
 
 luasrv: luasrv.c
-	$(CC) luasrv.c lfs.c luaiconv.c $(CFLAGS) -o luasrv
+	$(CC) luasrv.c libs/lfs.c libs/luaiconv.c libs/md5.c $(CFLAGS) -o luasrv
 
 clean: luasrv 
 	$(RM) -f luasrv
