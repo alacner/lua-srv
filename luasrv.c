@@ -42,6 +42,8 @@
 #include "compat-5.1.h"
 #endif
 
+#include "lfs.h"
+
 #if LUA_VERSION_NUM < 501
 #define luaL_register(a, b, c) luaL_openlib((a), (b), (c), 0)
 #endif
@@ -75,41 +77,6 @@ static void show_help(void)
 		   "--------------------------------------------------------------------------------------------------\n"
 		   "\n";
 	fprintf(stderr, b, strlen(b));
-}
-
-/* 创建多层目录的函数 */
-void create_multilayer_dir( char *muldir ) {
-    int    i,len;
-    char    str[512];
-    
-    strncpy( str, muldir, 512 );
-    len=strlen(str);
-    for( i=0; i<len; i++ ) {
-        if( str[i]=='/' ) {
-            str[i] = '\0';
-            //判断此目录是否存在,不存在则创建
-            if( access(str, F_OK)!=0 ) {
-                mkdir( str, 0777 );
-            }
-            str[i]='/';
-        }
-    }
-    if( len>0 && access(str, F_OK)!=0 ) {
-        mkdir( str, 0777 );
-    }
-
-    return;
-}
-
-static int luaM_mkdir (lua_State *L) {
-	const char *muldir = luaL_optstring(L, 1, NULL);
-	create_multilayer_dir((char *)muldir);
-	if (access(muldir, W_OK) == 0) {
-		lua_pushboolean(L, 1);
-	} else {
-		lua_pushboolean(L, 0);
-	}
-	return 1;	
 }
 
 #define NUL  '\0'
@@ -279,7 +246,6 @@ int main(int argc, char **argv) {
 
 	struct luaL_reg driver[] = {
         { "print", luaM_print },
-        { "mkdir", luaM_mkdir },
         { "microtime", luaM_microtime },
         { "get_header", luaM_get_header },
         { "set_header", luaM_set_header },
@@ -288,8 +254,10 @@ int main(int argc, char **argv) {
 
 	luaL_register (L, "cgi", driver);
 
-	if (luaL_loadfile(L, "./script/lp.lua") || lua_pcall(L, 0, 0, 0)) { /* load the compile template functions */
-		fprintf (stderr, "cannot run lp.lua: %s", lua_tostring(L, -1));
+	luaopen_lfs (L);
+
+	if (luaL_loadfile(L, "./script/init.lua") || lua_pcall(L, 0, 0, 0)) { /* load the compile template functions */
+		fprintf (stderr, "cannot run init.lua: %s", lua_tostring(L, -1));
 		kill_signal(1);
 		return 0;
 	}

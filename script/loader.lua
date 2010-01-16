@@ -1,19 +1,9 @@
 package.path = './script/?.lua;./?.lua;';
 
-require "print_r"
-require "urlcode"
-require "split"
-require "serialize"
 
 GET, POST, FILES, COOKIE, REQUEST = {}, {}, {}, {}, {}
 
-local EVHTTP_REQ_METHOD = {[0]='GET', [1]='POST', [2]='HEAD', [3]='NULL'} -- find at evhttp.h:179:enum evhttp_cmd_type
 SERVER.REQUEST_METHOD = EVHTTP_REQ_METHOD[SERVER.REQUEST_METHOD]
-
-
-
--- Default path for temporary files
-tmp_path = os.getenv("TEMP") or os.getenv ("TMP") or "/tmp"
 
 -- PARSE COOKIE --
 local cookies = cgi.get_header("Cookie") or ""
@@ -158,12 +148,8 @@ end
 
 --"\r\n\t <>'\"\\"
 -- SESSION FUNCTION --
-local session_timeout = 10 * 60 -- 10 minutes
-
-cgi.mkdir(tmp_path .. '/sess') -- save session files
-
 local function session_filename (token)
-	return string.format ("%s/sess_%s.lua", tmp_path, token)
+	return string.format ("%s/sess_%s.lua", session_save_path, token)
 end
 
 local function session_exists (token)

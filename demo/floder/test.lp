@@ -16,6 +16,7 @@
         Password: <input name="pass" type="password" maxlength="20" size="20"><br />
         file1: <input name="file1" type="file"><br />
         file2: <input name="file2" type="file"><br />
+        <textarea name="content" ></textarea><br />
         <input type="submit" value="Login" />
         <input type="reset" value="Reset" />
     </form>
@@ -24,6 +25,7 @@
         Password: <input name="pass" type="password" maxlength="20" size="20"><br />
         file1: <input name="file1" type="file"><br />
         file2: <input name="file2" type="file"><br />
+        <textarea name="content" ></textarea><br />
         <input type="submit" value="Login" />
         <input type="reset" value="Reset" />
     </form>

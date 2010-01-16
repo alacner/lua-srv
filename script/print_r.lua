@@ -1,14 +1,15 @@
-printl = print
-print = cgi.print
-echo = cgi.print
---local print = echo.print
 local type = type
 local pairs = pairs
 local tostring = tostring
 
-function print_r(sth)
+printl = print
+print = cgi.print
+echo = cgi.print
+
+function print_r(sth, how)
+	_how = type(how) == "function" and how or print
     if type(sth) ~= "table" then
-        print(sth) 
+        _how(sth) 
         return
     end
 
@@ -19,7 +20,7 @@ function print_r(sth)
             
             if type(v) == "table" then 
                 deep = deep + 2 
-                print(string.format("%s[%s] => Table\n%s(",
+                _how(string.format("%s[%s] => Table\n%s(",
                                 string.rep(space, deep - 1),
                                 key,
                                 string.rep(space, deep)
@@ -27,10 +28,10 @@ function print_r(sth)
                     ) --print.
                 _dump(v)
                 
-                print(string.format("%s)",string.rep(space, deep)))
+                _how(string.format("%s)",string.rep(space, deep)))
                 deep = deep - 2 
             else
-                print(string.format("%s[%s] => %s",
+                _how(string.format("%s[%s] => %s",
                                 string.rep(space, deep + 1),
                                 key,
                                 tostring(v)
@@ -40,7 +41,9 @@ function print_r(sth)
         end
     end
 
-    print(string.format("Table\n("))
+    _how(string.format("Table\n("))
     _dump(sth)
-    print(string.format(")"))
+    _how(string.format(")"))
 end
+
+printl_r = function(sth) print_r(sth, printl) end
