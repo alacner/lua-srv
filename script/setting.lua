@@ -10,7 +10,7 @@ setting.cgi.tmp_path = os.getenv("TEMP") or os.getenv ("TMP") or "/tmp"
 
 -- config session
 setting.session = {}
-setting.session.timeout = 0 * 60 -- 10 minutes
+setting.session.timeout = 1 * 60 -- 10 minutes
 setting.session.save_path = setting.cgi.tmp_path .. '/sess'
 setting.session.name = "LUASESSID"
 setting.session.cookie_expire = 0
