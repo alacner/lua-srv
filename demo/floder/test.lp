@@ -39,4 +39,6 @@ setcookie('love', os.time(), 9527)
 ?>
 <?lua
 --print_r(SERVER)
+--local x = iconv_all("utf8", "gbk", "ahah呵呵")
+--print_r(x)
 ?>

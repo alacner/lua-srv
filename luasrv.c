@@ -43,6 +43,7 @@
 #endif
 
 #include "lfs.h"
+#include "luaiconv.h"
 
 #if LUA_VERSION_NUM < 501
 #define luaL_register(a, b, c) luaL_openlib((a), (b), (c), 0)
@@ -255,6 +256,7 @@ int main(int argc, char **argv) {
 	luaL_register (L, "cgi", driver);
 
 	luaopen_lfs (L);
+	luaopen_iconv (L);
 
 	if (luaL_loadfile(L, "./script/init.lua") || lua_pcall(L, 0, 0, 0)) { /* load the compile template functions */
 		fprintf (stderr, "cannot run init.lua: %s", lua_tostring(L, -1));
