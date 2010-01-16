@@ -20,6 +20,7 @@ session_start()
     <?lua
 --local a=4; print(a)
 ?>
+<br/>
     <?= math.pi ?>
     <? if logged then ?>
     <p>User <?= username ?> logged in</p>
@@ -53,6 +54,7 @@ setcookie('love', os.time(), 9527)
 --print_r(POST)
 ?>
 <?lua
+SESSION.haha = os.time()
 print("<hr>GET<br/>");
 print_r(GET)
 print("<hr>POST<br/>");
@@ -63,6 +65,8 @@ print("<hr>REQUEST<br/>");
 print_r(REQUEST)
 print("<hr>FILES<br/>");
 print_r(FILES)
+print("<hr>SESSION<br/>");
+print_r(SESSION)
 print("<hr>");
 
 local d = {1,3,4,5}

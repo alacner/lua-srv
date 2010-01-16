@@ -1,10 +1,18 @@
 lfs.mkdir(setting.session.save_path)
 
 function session_filename (token)
+	if not token then
+		return false
+	end
+
 	return string.format ("%s/sess_%s.lua", setting.session.save_path, token)
 end
 
 function session_exists (token)
+	if not token then
+		return false
+	end
+
 	local fh = io.open(session_filename(token))
 	if fh then
 		fh:close ()
@@ -37,4 +45,18 @@ function session_save (token, data)
 	local fh = assert (io.open(session_filename(token), "w+"))
 	fh:write "return "
 	serialize (data, function (s) fh:write(s) end)
+	fh:close()
+end
+
+function session_load (token)
+	if not session_exists(token) then
+		return false
+	end
+
+	local f, err = loadfile (session_filename(token))
+	if not f then
+		return nil, err
+	else
+		return f()
+	end
 end

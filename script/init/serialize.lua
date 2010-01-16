@@ -17,6 +17,9 @@ local value = nil
 -- @param pre String with indentation prefix (default = "").
 ----------------------------------------------------------------------------
 local function tabledump (tab, outf, ind, pre)
+	if type(tab) ~= "table" then
+		return
+	end
 	local sep_n, sep, _n = ",\n", ", ", "\n"
 	if (not ind) or (ind == "") then ind = ""; sep_n = ", "; _n = "" end
 	if not pre then pre = "" end

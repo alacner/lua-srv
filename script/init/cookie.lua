@@ -6,12 +6,12 @@ function setcookie(...)
 	end
 	local t = {};
 	table.insert(t, name .. '=' .. escape(value))
-	if expire then
+	if (expire and expire > 0) then
 		local e = os.date("!%A, %d-%b-%Y %H:%M:%S GMT", expire)
 		table.insert(t, 'expires=' .. e)
 	end
-	if path then table.insert(t, 'path=' .. path) end
-	if domain then table.insert(t, 'domain=' .. domain) end
+	if (path and path ~= "") then table.insert(t, 'path=' .. path) end
+	if (domain and domain ~= "") then table.insert(t, 'domain=' .. domain) end
 	if secure then table.insert(t, 'secure') end
 	
 	cgi.set_header("Set-Cookie", table.concat(t, "; "));

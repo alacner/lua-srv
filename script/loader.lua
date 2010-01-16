@@ -12,8 +12,6 @@ cookies = string.gsub(cookies, "%s*;%s*", ";")   -- remove extra spaces
 for k, v in string.gmatch(cookies, "([%w_]+)=([%w_]+);") do
 	COOKIE[k] = v and unescape(v)
 end
-print_r(cgi.get_header("Cookie"))
-print_r(COOKIE)
 
 function deletecookie(name)
 	setcookie(name, 'NULL', -1)
@@ -128,12 +126,16 @@ function move_uploaded_file(f, dest)
 end
 
 
---"\r\n\t <>'\"\\"
 -- SESSION FUNCTION --
+session_started_token = false
 function session_start ()
-	print_r("<hr>fdsafdsafsa<br>")
-	print_r(COOKIE)
-	print_r("<hr>fdsafdsafsa<br>")
+	local client_sessionID = COOKIE[setting.session.name];
+	if client_sessionID and session_exists (client_sessionID) then
+		session_started_token = client_sessionID 
+		SESSION = session_load(session_started_token) 
+		return session_started_token 
+	end 
+
 	local ver = 0;
 	local token = cgi.md5(cgi.microtime(1))
 	if session_exists (token) then
@@ -144,8 +146,19 @@ function session_start ()
 	end
 	-- save cookie
 	setcookie(setting.session.name, token, setting.session.cookie_expire, setting.session.cookie_path, setting.session.cookie_domain, setting.session.cookie_secure)
-	return token 
+	session_save(token, {})
+	session_started_token = token 
+	SESSION = session_load(session_started_token) 
+	return session_started_token 
 end
+
+--"\r\n\t <>'\"\\"
 
 -- run script --
 include(SERVER['SCRIPT_FILENAME'])
+
+-- [[cgi close]] --
+-- save session value
+if session_started_token then
+	session_save(session_started_token, SESSION)
+end
