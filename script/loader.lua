@@ -3,7 +3,7 @@ package.path = './script/?.lua;./?.lua;';
 
 GET, POST, FILES, COOKIE, REQUEST = {}, {}, {}, {}, {}
 
-SERVER.REQUEST_METHOD = EVHTTP_REQ_METHOD[SERVER.REQUEST_METHOD]
+SERVER.REQUEST_METHOD = setting.cgi.evhttp_req_method[SERVER.REQUEST_METHOD]
 
 -- PARSE COOKIE --
 local cookies = cgi.get_header("Cookie") or ""
@@ -149,7 +149,7 @@ end
 --"\r\n\t <>'\"\\"
 -- SESSION FUNCTION --
 local function session_filename (token)
-	return string.format ("%s/sess_%s.lua", session_save_path, token)
+	return string.format ("%s/sess_%s.lua", setting.session.save_path, token)
 end
 
 local function session_exists (token)
@@ -162,7 +162,7 @@ local function session_exists (token)
 	end
 end
 
-function session_new ()
+function session_start ()
 	local ver = 0;
 	local token = cgi.microtime(1)
 	if session_exists (token) then
@@ -171,6 +171,8 @@ function session_new ()
 			ver = ver + 1
 		until not session_exists (token)
 	end
+	-- save cookie
+	setcookie(setting.session.name, token, setting.session.cookie_expire, setting.session.cookie_path, setting.session.cookie_domain, setting.session.cookie_secure)
 	return token 
 end
 

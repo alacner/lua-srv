@@ -38,7 +38,9 @@ setcookie('love', os.time(), 9527)
 --print_r(POST)
 ?>
 <?lua
---print_r(SERVER)
+local d = {1,3,4,5}
+SERVER.ser = d
+print_r(SERVER)
 --local x = iconv_all("utf8", "gbk", "ahah呵呵")
 --print_r(x)
 ?>
