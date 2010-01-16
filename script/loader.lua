@@ -1,5 +1,4 @@
-package.path = './script/?.lua;./?.lua;';
-
+package.path = './?.lua;./script/?.lua';
 
 GET, POST, FILES, COOKIE, REQUEST = {}, {}, {}, {}, {}
 
@@ -136,10 +135,10 @@ function session_start ()
 	print_r(COOKIE)
 	print_r("<hr>fdsafdsafsa<br>")
 	local ver = 0;
-	local token = cgi.microtime(1)
+	local token = cgi.md5(cgi.microtime(1))
 	if session_exists (token) then
 		repeat
-			token = token .. '.' .. ver
+			token = cgi.md5(token .. '.' .. ver)
 			ver = ver + 1
 		until not session_exists (token)
 	end
@@ -148,31 +147,5 @@ function session_start ()
 	return token 
 end
 
-
-print("<hr>GET<br/>");
-print_r(GET)
-print("<hr>POST<br/>");
-print_r(POST)
-print("<hr>COOKIE<br/>");
-print_r(COOKIE)
-print("<hr>REQUEST<br/>");
-print_r(REQUEST)
-print("<hr>FILES<br/>");
-print_r(FILES)
-print("<hr>");
---setcookie('wgj', 'yes')
---setcookie('test2', 'haha', 9527)
---setcookie('test', 'haha', 100, '/', 'domian.com', true)
---cgi.set_header("Set-Cookie", "_cbb=hahahhahahaha");
---print_r(GET_DATA)
---print("================================");
---print("<hr>");
---print("================================");
---print_r(COOKIE)
---print_r(HEADER_DATA)
---print_r(cgi.get_header("Host"))
---print_r(cgi.get_header("Content-Length"))
-
---print_r(SERVER)
-
+-- run script --
 include(SERVER['SCRIPT_FILENAME'])
