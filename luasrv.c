@@ -29,12 +29,14 @@
 #include <assert.h>
 #include <signal.h>
 #include <stdbool.h>
+#include <pthread.h>
 
 #include <err.h>
 #include <event.h>
 #include <evhttp.h>
 
 #define VERSION "1.0.0"
+#define SESSION_CLEANUP_ALARM 3
 
 #include "lua.h"
 #include "lauxlib.h"
@@ -51,6 +53,24 @@
 
 #define safe_emalloc(nmemb, size, offset)  malloc((nmemb) * (size) + (offset)) 
 
+#define N 100  //设置最大的定时器个数
+int i=0,t=1; //i代表定时器的个数；t表示时间，逐秒递增
+struct Timer //Timer结构体，用来保存一个定时器的信息
+{    
+    int total_time;  //每隔total_time秒
+    int left_time;   //还剩left_time秒
+    int func;        //该定时器超时，要执行的代码的标志
+}myTimer[N];    //定义Timer类型的数组，用来保存所有的定时器
+
+void setTimer(int t,int f) //新建一个计时器
+{    
+    struct Timer a;
+    a.total_time=t;
+    a.left_time=t;
+    a.func=f;
+    myTimer[i++]=a;
+}
+
 //Global Setting
 lua_State *L; /* lua state handle */
 char *luasrv_settings_rootpath = NULL;
@@ -58,6 +78,7 @@ struct evhttp *httpd;
 struct evbuffer *buf;
 struct evkeyvalq *input_headers;
 struct evkeyvalq *output_headers;
+pthread_t ntid;
 
 static void show_help(void)
 {
@@ -234,6 +255,32 @@ static void kill_signal(const int sig) {
     exit(0);
 }
 
+void *session_clearup(void *arg) {
+
+	lua_getglobal(L, "session_cleanup");
+	if (lua_pcall(L, 0, 1, 0)) {
+		fprintf (stderr, "cannot run session_clearup: %s\n", lua_tostring(L, -1));
+	} else {
+		int cnt = (int) lua_tointeger(L, -1);
+		lua_pop(L, 1);
+		fprintf (stderr, "session total clearup: %d\n", cnt);
+	}
+	return ((void *)0);
+}
+
+static void timer(int sig) {
+	int err;
+	if (sig == SIGALRM) {
+		err = pthread_create(&ntid, NULL, session_clearup, NULL);
+		if (err != 0) {
+			sprintf(stderr, "can't create thread: %s\n", strerror(err));
+			return;
+		}
+	}
+    alarm(SESSION_CLEANUP_ALARM);
+	return;
+}
+
 int main(int argc, char **argv) {
 	int c;
 	/* 默认参数设置 */
@@ -264,10 +311,6 @@ int main(int argc, char **argv) {
 		return 0;
 	}
 
-	//char cwd_buf[255];
-	//getcwd(cwd_buf,sizeof(cwd_buf));
-
-	//fprintf(stderr, cwd_buf);
     /* process arguments */
     while ((c = getopt(argc, argv, "l:p:x:t:dh")) != -1) {
         switch (c) {
@@ -329,8 +372,11 @@ int main(int argc, char **argv) {
 	signal (SIGTERM, kill_signal);
 	signal (SIGHUP, kill_signal);
 	
-	/* 请求处理部分 */
+    signal(SIGALRM, timer);
+    alarm(SESSION_CLEANUP_ALARM);
 
+
+	/* 请求处理部分 */
 
     event_init();
     httpd = evhttp_start(luasrv_settings_listen, luasrv_settings_port);
