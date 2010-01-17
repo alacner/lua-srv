@@ -48,6 +48,7 @@
 #include "libs/lfs.h"
 #include "libs/luaiconv.h"
 #include "libs/md5.h"
+#include "libs/luamysql.h"
 
 #if LUA_VERSION_NUM < 501
 #define luaL_register(a, b, c) luaL_openlib((a), (b), (c), 0)
@@ -62,7 +63,7 @@ struct evhttp *httpd;
 struct evbuffer *buf;
 struct evkeyvalq *input_headers;
 struct evkeyvalq *output_headers;
-pthread_t ntid;
+pthread_t ntid[2];
 
 static void show_help(void)
 {
@@ -164,18 +165,27 @@ void luasrv_handler(struct evhttp_request *req, void *arg)
 	lua_pushstring(L, decode_uri);
 	lua_setglobal(L, "GET_DATA");
 
-	// POST
-	int post_data_len;
-	post_data_len = EVBUFFER_LENGTH(req->input_buffer);
+	if (req->type == EVHTTP_REQ_POST) { // POST
+		int post_data_len;
+		post_data_len = EVBUFFER_LENGTH(req->input_buffer);
 
-		fprintf(stderr, "\n - %d - \n", post_data_len);
-	if (post_data_len > 0) {
-		lua_pushstring(L, (char *)EVBUFFER_DATA(req->input_buffer));
-		lua_setglobal(L, "POST_DATA");
+		if (post_data_len > 0) {
+			char *post_data;
+			// copy post data, The string can contain embedded zeros.
+			post_data = (char *)malloc(post_data_len + 1);
+			memset(post_data, '\0', post_data_len + 1);
+			memcpy (post_data, EVBUFFER_DATA(req->input_buffer), post_data_len);
+
+			lua_pushlstring(L, post_data, post_data_len + 1);
+			lua_setglobal(L, "POST_DATA");
+			free(post_data);
+		}
 	}
 
-	evhttp_add_header(req->output_headers, "Server", "luasrv" VERSION);
+	evhttp_add_header(req->output_headers, "Server", "luasrv " VERSION);
 	evhttp_add_header(req->output_headers, "Keep-Alive", "120");
+	//evhttp_add_header(req->output_headers, "Connection", "Keep-Alive");
+
 	
 	char *script_name = strtok(decode_uri, "?");
 	char *query_string = strtok(NULL, "?");
@@ -264,6 +274,20 @@ static void kill_signal(const int sig) {
     exit(0);
 }
 
+static void upload_clearup() {
+	while(1) {
+		lua_getglobal(L, "upload_cleanup");
+		if (lua_pcall(L, 0, 1, 0)) {
+			fprintf (stderr, "cannot run upload_clearup: %s\n", lua_tostring(L, -1));
+		} else {
+			//int cnt = (int) lua_tointeger(L, -1);
+			//lua_pop(L, 1);
+			//fprintf (stderr, "upload total clearup: %d\n", cnt);
+		}
+		sleep(1);
+	}
+}
+
 static void session_clearup() {
 	while(1) {
 		lua_getglobal(L, "session_cleanup");
@@ -302,6 +326,7 @@ int main(int argc, char **argv) {
 
 	luaopen_lfs (L);
 	luaopen_iconv (L);
+	luaopen_mysql (L);
 
 	if (luaL_loadfile(L, "./script/init.lua") || lua_pcall(L, 0, 0, 0)) { /* load the compile template functions */
 		fprintf (stderr, "cannot run init.lua: %s", lua_tostring(L, -1));
@@ -370,9 +395,13 @@ int main(int argc, char **argv) {
 	signal (SIGTERM, kill_signal);
 	signal (SIGHUP, kill_signal);
 	
-	int err = pthread_create(&ntid, NULL, (void *(*)(void *))session_clearup, NULL);
-	if (err != 0) {
-		fprintf(stderr, "can't create session_clearup thread: %s\n", strerror(err));
+	/* more thread */
+	if (pthread_create(&ntid[0], NULL, (void *(*)(void *))session_clearup, NULL) != 0) {
+		fprintf(stderr, "can't create session_clearup thread.\n");
+	}
+
+	if (pthread_create(&ntid[1], NULL, (void *(*)(void *))upload_clearup, NULL) != 0) {
+		fprintf(stderr, "can't create upload_clearup thread.\n");
 	}
 
 	/* 请求处理部分 */

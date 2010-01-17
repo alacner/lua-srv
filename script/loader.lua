@@ -19,8 +19,8 @@ function deletecookie(name)
 end
 
 -- PARSE POST --
-printl(POST_DATA)
-print(POST_DATA)
+--printl(POST_DATA)
+--print(POST_DATA)
 
 local function getboundary ()
 	local ct = cgi.get_header("Content-Type");
@@ -33,60 +33,43 @@ end
 --
 -- Create a table containing the headers of a multipart/form-data field
 --
-local function breakheaders (hdrdata)
-	local headers = {}
-	string.gsub (hdrdata, '([^%c%s:]+):%s+([^\n]+)', function(type,val)
-		type = string.lower(type)
-		headers[type] = val
-	end)
-	return headers
-end
-
-function parse_post(data)
-	local val = string.match(data, ".+\r\n(.+)")
-	return val
-end
-
--- name,type,size,tmp_name,error
-function parse_post_file(data)
-	local val = string.match(data, ".+\r\n(.+)")
-	local ppf = {}
-	local f = io.tmpfile(); f:write(val);-- f:close()
-	ppf["tmp_name"] = f
-	ppf["size"] = string.len(val)
-	ppf["error"] = 0
-	return ppf
-end
 
 function split_boundary()
-	--printl(POST_DATA)
 	local POST_TEMP = split(POST_DATA, boundary)
-	for i,p in ipairs(POST_TEMP) do 
-		local h = breakheaders(p)	
+	for i,pd in ipairs(POST_TEMP) do 
+
+		local headers = {}
+		local hdrdata, post_val = string.match(pd, "(.+)\r\n\r\n(.+)\r\n")
+		--printl(hdrdata)
+
+		if hdrdata then
+			string.gsub (hdrdata, '([^%c%s:]+):%s+([^\n]+)', function(type,val)
+				type = string.lower(type)
+				headers[type] = val
+			end)
+		end
+
 		local t = {}
-		local hcd = h["content-disposition"]
+		local hcd = headers["content-disposition"]
 		if hcd then
 			string.gsub(hcd, ';%s*([^%s=]+)="(.-)"', function(attr, val)
 				t[attr] = val
 			 end)
-		else
-			error("Error processing multipart/form-data."..
-			  "\nMissing content-disposition header")
+			-- Filter POST or FILE
+			if headers["content-type"] then
+				-- name,type,size,tmp_name,error
+				local file = {}
+				file['type'] = headers["content-type"]
+				file['name'] = t["filename"]
+				local ppf = upload_save (post_val)
+				file['tmp_name'] = ppf["tmp_name"]
+				file['size'] = ppf["size"]
+				file['error'] = ppf["error"]
+				FILES[t.name] = file
+			else
+				POST[t.name] = post_val 
+			end	
 		end
-
-		-- Filter POST or FILE
-		if h["content-type"] then
-			local file = {}
-			file['type'] = h["content-type"]
-			file['name'] = t["filename"]
-			local ppf = parse_post_file(p)
-			file['tmp_name'] = ppf["tmp_name"]
-			file['size'] = ppf["size"]
-			file['error'] = ppf["error"]
-			FILES[t.name] = file
-		else
-			POST[t.name] = parse_post(p) 
-		end	
 	end
 end
 
@@ -98,6 +81,7 @@ elseif (SERVER.REQUEST_METHOD == 'POST') then
 	--print_r(POST_DATA)
 	boundary = getboundary()
 	if boundary then
+		--printl(boundary)
 		split_boundary()
 	else
 		parsequery(POST_DATA, POST)
@@ -157,10 +141,15 @@ end
 --"\r\n\t <>'\"\\"
 
 -- run script --
-include(SERVER['SCRIPT_FILENAME'])
+include(SERVER.SCRIPT_FILENAME)
 
 -- [[cgi close]] --
 -- save session value
 if session_started_token then
 	session_save(session_started_token, SESSION)
 end
+-- upload file cleanup 
+for k,v in pairs(FILES) do
+	os.remove(v.tmp_name)
+end
+

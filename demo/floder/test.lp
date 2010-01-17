@@ -1,4 +1,7 @@
 <?lua
+--local db, err = mysql.connect('localhost', 'root', 'kernel')
+--printl(db)
+--printl(err)
 session_start()
 --local md5 = cgi.md5('中国人1', 1)
 --local md52 = cgi.md5('中国人1')

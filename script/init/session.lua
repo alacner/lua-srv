@@ -1,5 +1,3 @@
-lfs.mkdir(setting.session.save_path)
-
 function session_filename (token)
 	if not token then
 		return false
