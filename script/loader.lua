@@ -150,6 +150,8 @@ if session_started_token then
 end
 -- upload file cleanup 
 for k,v in pairs(FILES) do
-	os.remove(v.tmp_name)
+	if v.tmp_name then
+		os.remove(v.tmp_name)
+	end
 end
 
