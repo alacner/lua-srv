@@ -3,8 +3,19 @@ local pairs = pairs
 local tostring = tostring
 
 printl = print
-print = cgi.print
-echo = cgi.print
+
+print = function(sth)
+	if not sth then
+		return
+	end
+	if type(sth) == "table" then
+		cgi.print("You want print a table, plesae use print_r!")
+	else
+		cgi.print(sth)
+	end
+end
+
+echo = print
 
 function print_r(sth, how, exp)
 	exp = exp or "\r\n";

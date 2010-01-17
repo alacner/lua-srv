@@ -19,6 +19,8 @@ function deletecookie(name)
 end
 
 -- PARSE POST --
+printl(POST_DATA)
+print(POST_DATA)
 
 local function getboundary ()
 	local ct = cgi.get_header("Content-Type");
